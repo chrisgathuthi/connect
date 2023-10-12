@@ -69,14 +69,21 @@ function connect() {
         console.log(data);
 
         switch (data.type) {
-            case "chat_message":
-                chatLog.value += data.message + "\n";
+            // ...
+            case "user_list":
+                for (let i = 0; i < data.users.length; i++) {
+                    onlineUsersSelectorAdd(data.users[i]);
+                }
                 break;
-            default:
-                console.error("Unknown message type!");
+            case "user_join":
+                chatLog.value += data.user + " joined the room.\n";
+                onlineUsersSelectorAdd(data.user);
                 break;
-        }
-
+            case "user_leave":
+                chatLog.value += data.user + " left the room.\n";
+                onlineUsersSelectorRemove(data.user);
+                break;
+            }
         // scroll 'chatLog' to the bottom
         chatLog.scrollTop = chatLog.scrollHeight;
     };
