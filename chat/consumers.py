@@ -3,9 +3,8 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
-
-from .models import Room, Message
-
+from django.template.loader import get_template
+from .models import Room, Message, User
 
 class ChatConsumer(WebsocketConsumer):
 
@@ -68,6 +67,7 @@ class ChatConsumer(WebsocketConsumer):
     def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
+        print(message)
 
         if self.user.is_authenticated:
             return
@@ -87,6 +87,7 @@ class ChatConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps(event))
 
     def user_join(self, event):
+        print(event)
         self.send(text_data=json.dumps(event))
 
     def user_leave(self, event):
@@ -96,8 +97,40 @@ class ChatConsumer(WebsocketConsumer):
 class Notification(WebsocketConsumer):
 
     def connect(self):
-        print(self.channel_name)
+        self.group_name = "user-notification"
+        async_to_sync(self.channel_layer.group_add)(
+            self.group_name,
+            self.channel_name,
+        )
+        self.accept()
+
+    def disconnect(self, close_code):
+        self.group_name = "user-notification"
+        async_to_sync(self.channel_layer.group_discard)(
+            self.group_name,
+            self.channel_name,
+        )
+    
+    def user_joined(self, event):
+        print(event)
+        # self.send(text_data=event["text"])
+        html = get_template("notification.html").render(context={'room': event["text"]})
+        self.send(text_data=html)
+
+
+class TalkConsumer(WebsocketConsumer):
+    
+    def connect(self):
         self.accept()
 
     def disconnect(self, close_code):
         pass
+
+    def receive(self, text_data=None, bytes_data=None):
+        text_data_json = json.loads(text_data)
+        user = User.objects.last()
+        room = Room.objects.last()
+        latest_chat = Message.objects.create(user=user, room=room, content=text_data_json['message'])
+
+        html = get_template("chats.html").render(context={'messages': Message.objects.all(), 'new_chat':latest_chat})
+        self.send(text_data=html)

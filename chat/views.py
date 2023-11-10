@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from chat.models import Room
+from chat.models import Room, Message
 
 
 def index_view(request):
@@ -18,3 +18,7 @@ def room_view(request, room_name):
 
 def notice(request):
     return render(request, "base.html")
+
+
+def talk(request):
+    return render(request, "talk.html", {'messages': Message.objects.all(), 'groups':Room.objects.all()})

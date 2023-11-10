@@ -70,6 +70,9 @@ function connect() {
 
         switch (data.type) {
             // ...
+            case "chat_message":
+                chatLog.value += data.user + ": " + data.message + "\n";  // new
+                break;
             case "user_list":
                 for (let i = 0; i < data.users.length; i++) {
                     onlineUsersSelectorAdd(data.users[i]);
