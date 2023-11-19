@@ -110,6 +110,7 @@ class Notification(WebsocketConsumer):
             self.group_name,
             self.channel_name,
         )
+        
     
     def user_joined(self, event):
         print(event)
@@ -119,18 +120,41 @@ class Notification(WebsocketConsumer):
 
 
 class TalkConsumer(WebsocketConsumer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = None
+        self.room = None
+        self.group_name = None
     
     def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_id']
+        self.group_name = f'chat_{self.room}'
+        self.room = Room.objects.get(id=self.room_name)
+        self.user = self.scope["user"]
+
+        # accept connection
         self.accept()
 
+        # join the room/group
+        async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
+
+        # user joined notification
+        html = get_template("partial/join.html").render(context={"user":self.user})
+        self.send(text_data=html)
+
     def disconnect(self, close_code):
-        pass
+        async_to_sync(self.channel_layer.group_discard)(self.group_name,self.channel_name)
+        html = get_template("partial/leave.html").render(context={"user":self.user})
+        self.send(
+            text_data=html
+        )
+        self.room.online.remove(self.user)
 
     def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
-        user = User.objects.last()
-        room = Room.objects.last()
-        latest_chat = Message.objects.create(user=user, room=room, content=text_data_json['message'])
+        room = Room.objects.get(id=self.room_name)
+        Message.objects.create(user=self.user, room=room, content=text_data_json['message'])
 
-        html = get_template("chats.html").render(context={'messages': Message.objects.all(), 'new_chat':latest_chat})
+        html = get_template("chats.html").render(context={'messages': room.message_set.all()})
         self.send(text_data=html)

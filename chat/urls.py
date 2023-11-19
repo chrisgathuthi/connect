@@ -8,4 +8,5 @@ urlpatterns = [
     path('meet/<str:room_name>/', views.room_view, name='chat-room'),
     path("base/", views.notice, name='notice'),
     path("talk/", views.talk, name='talk'),
+    path("group/<str:group_name>/",views.group, name='group')
 ]
