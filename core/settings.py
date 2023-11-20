@@ -71,6 +71,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = "core.asgi.application"
+# login pages
+LOGIN_URL = '/login/'
+LOGIN_URL_REDIRECT = '/chat/talk/'
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
